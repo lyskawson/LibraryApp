@@ -74,7 +74,7 @@ fun MyLibraryScreen(
         // List of Books
         Box(modifier = Modifier.fillMaxSize()) { // Use Box to overlay loading/error/list
             when {
-                uiState.isLoading -> {
+                uiState.isLoadingRented -> {
                     CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                 }
                 uiState.error != null -> {
@@ -86,7 +86,7 @@ fun MyLibraryScreen(
                     // Optional: Add a retry button
                     // Button(onClick = { viewModel.refreshData() }, modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp)) { Text("Retry") }
                 }
-                itemsToShow.isEmpty() && !uiState.isLoading -> {
+                itemsToShow.isEmpty() && !uiState.isLoadingRented -> {
                     Text(
                         text = "No ${uiState.selectedFilter.name.lowercase()} books found.",
                         modifier = Modifier.align(Alignment.Center).padding(16.dp),

@@ -52,7 +52,7 @@ fun HomeScreen(
 
     Box(modifier = modifier.fillMaxSize()) { // Use Box for loading/error overlay
         when {
-            uiState.isLoading -> {
+            uiState.isLoadingDiscover -> {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             }
             uiState.error != null -> {

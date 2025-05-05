@@ -72,6 +72,15 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+    // --- Add these Networking Dependencies ---
+    implementation(platform(libs.okhttp.bom))          // Add OkHttp BOM first
+    implementation(libs.okhttp)                        // OkHttp Core
+    implementation(libs.okhttp.logging.interceptor)    // OkHttp Logging (optional but useful)
+    implementation(libs.retrofit)                      // Retrofit Core
+    implementation(libs.retrofit.converter.moshi)      // Retrofit Moshi Converter
+    implementation(libs.moshi.kotlin)                  // Moshi Runtime
+    // --- End Add ---
+
 
 
 

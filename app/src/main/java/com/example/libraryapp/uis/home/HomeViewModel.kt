@@ -3,89 +3,84 @@ package com.example.libraryapp.uis.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.libraryapp.data.entities.Book
+import com.example.libraryapp.data.repositories.BookRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.example.libraryapp.data.repositories.Result
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    // Inject Repository here later
+    private val bookRepository: BookRepository // Inject repository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
+    // Trigger for refreshing data
+    private val refreshTrigger = MutableStateFlow(System.currentTimeMillis())
+
     init {
-        loadHomeData()
+        // Keep static categories for now, or load them if dynamic
+        _uiState.update { it.copy(categories = listOf("Fiction", "Science", "History", "Fantasy", "Biography")) }
+
+        observeBooks()
+    }
+
+    private fun observeBooks() {
+        // Observe Featured Books
+        viewModelScope.launch {
+            refreshTrigger.collectLatest { // Use collectLatest to restart on trigger
+                bookRepository.getFeaturedBooks()
+                    .onStart { _uiState.update { it.copy(isLoadingFeatured = true, error = null) } } // Clear general error on start
+                    .catch { e -> _uiState.update { it.copy(isLoadingFeatured = false, error = "Error loading featured: ${e.message}") } }
+                    .collect { result ->
+                        when (result) {
+                            is Result.Success -> _uiState.update { it.copy(isLoadingFeatured = false, featuredBooks = result.data) }
+                            is Result.Error -> _uiState.update { it.copy(isLoadingFeatured = false, error = result.message ?: "Failed to load featured books") }
+                            is Result.Loading -> _uiState.update { it.copy(isLoadingFeatured = true) }
+                        }
+                    }
+            }
+        }
+
+        // Observe Discover Books
+        viewModelScope.launch {
+            refreshTrigger.collectLatest { // Use collectLatest to restart on trigger
+                bookRepository.getDiscoverBooks()
+                    .onStart { _uiState.update { it.copy(isLoadingDiscover = true/*, error = null*/) } } // Don't clear error from other sections
+                    .catch { e -> _uiState.update { it.copy(isLoadingDiscover = false, error = combineErrors(uiState.value.error, "Error loading discover: ${e.message}")) } }
+                    .collect { result ->
+                        when (result) {
+                            is Result.Success -> _uiState.update { it.copy(isLoadingDiscover = false, discoverBooks = result.data) }
+                            is Result.Error -> _uiState.update { it.copy(isLoadingDiscover = false, error = combineErrors(uiState.value.error, result.message ?: "Failed to load discover books")) }
+                            is Result.Loading -> _uiState.update { it.copy(isLoadingDiscover = true) }
+                        }
+                    }
+            }
+        }
+
+        // TODO: Observe dynamic categories if needed later
     }
 
     fun refreshHomeData() {
-        loadHomeData()
+        // Emit a new value to trigger collectLatest
+        refreshTrigger.value = System.currentTimeMillis()
     }
 
-    private fun loadHomeData() {
-        if (_uiState.value.isLoading) return // Prevent concurrent loads
-
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
-            try {
-                // --- Simulate Network/DB Delay ---
-                delay(1200) // Slightly different delay for variety
-
-                // --- Replace with actual Repository calls later ---
-
-                // --- Placeholder Data ---
-                val fakeFeatured = List(5) {
-                    Book( // Create instances of the new Book model
-                        id = "f$it",
-                        title = "Featured Book ${it + 1}",
-                        authors = listOf("Featured Author ${it % 3}"), // Use List
-                        description = "A short description for featured book $it.",
-                        coverUrl = null, // Add URLs later if needed for testing
-                        publishedDate = "202${it % 4}",
-                        categories = listOf("Featured", if(it % 2 == 0) "Fiction" else "Non-Fiction"),
-                        averageRating = (3.5f + (it % 15)/10f).coerceAtMost(5.0f),
-                        pageCount = 200 + (it*15)
-                    )
-                }
-                val fakeCategories = listOf("Fiction", "Science", "History", "Fantasy", "Biography", "Thriller", "Mystery")
-                val fakeDiscover = List(5) {
-                    Book( // Create instances of the new Book model
-                        id = "f$it",
-                        title = "Featured Book ${it + 1}",
-                        authors = listOf("Featured Author ${it % 3}"), // Use List
-                        description = "A short description for featured book $it.",
-                        coverUrl = null, // Add URLs later if needed for testing
-                        publishedDate = "202${it % 4}",
-                        categories = listOf("Featured", if(it % 2 == 0) "Fiction" else "Non-Fiction"),
-                        averageRating = (3.5f + (it % 15)/10f).coerceAtMost(5.0f),
-                        pageCount = 200 + (it*15)
-                    )
-                }
-                // --- End Placeholder Data ---
-
-                _uiState.update {
-                    it.copy(
-                        featuredBooks = fakeFeatured,
-                        categories = fakeCategories,
-                        discoverBooks = fakeDiscover,
-                        isLoading = false
-                    )
-                }
-
-            } catch (e: Exception) {
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        error = "Failed to load home screen: ${e.localizedMessage ?: "Unknown error"}"
-                    )
-                }
-            }
-        }
+    // Helper to combine multiple errors without overwriting
+    private fun combineErrors(existingError: String?, newError: String?): String? {
+        if (newError == null) return existingError
+        if (existingError == null) return newError
+        // Simple combination, could be more sophisticated
+        return "$existingError\n$newError"
     }
 }

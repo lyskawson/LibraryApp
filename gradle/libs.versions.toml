@@ -23,6 +23,10 @@ materialIconsExtended = "1.7.8"
 datastorePreferences = "1.0.0"
 coilCompose = "2.7.0"
 
+retrofit = "2.9.0" # Or check for the latest 2.x version (e.g., 2.11.0 as of late 2024)
+moshi = "1.15.1"   # Or latest stable
+okhttp = "4.12.0"  # Or latest stable (e.g., 4.12.0)
+
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -52,6 +56,20 @@ androidx-core = { group = "androidx.core", name = "core", version.ref = "core" }
 androidx-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended", version.ref = "materialIconsExtended" }
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastorePreferences" }
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coilCompose" }
+# Retrofit
+retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
+retrofit-converter-moshi = { group = "com.squareup.retrofit2", name = "converter-moshi", version.ref = "retrofit" }
+
+# Moshi
+moshi-kotlin = { group = "com.squareup.moshi", name = "moshi-kotlin", version.ref = "moshi" }
+# If you decide later to use Moshi codegen with ksp (instead of reflection):
+# moshi-kotlin-codegen = { group = "com.squareup.moshi", name = "moshi-kotlin-codegen", version.ref = "moshi" }
+
+# OkHttp (Using BOM - Bill of Materials)
+okhttp-bom = { group = "com.squareup.okhttp3", name = "okhttp-bom", version.ref = "okhttp" }
+okhttp = { group = "com.squareup.okhttp3", name = "okhttp" } # No version needed when using BOM
+okhttp-logging-interceptor = { group = "com.squareup.okhttp3", name = "logging-interceptor" } # No version needed when using BOM
+# --- End Add ---
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
