@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -31,21 +30,19 @@ import coil.request.ImageRequest
 import com.example.libraryapp.data.entities.Book
 import com.example.libraryapp.utils.randomColor
 
-@OptIn(ExperimentalMaterial3Api::class) // For Card onClick
 @Composable
 fun BookListItem(
-    book: Book, // Use a consistent data model (SimpleBook for now)
+    book: Book,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
-        // elevation = CardDefaults.cardElevation(defaultElevation = 1.dp) // Optional elevation
     ) {
         Row(
             modifier = Modifier.padding(8.dp),
-            verticalAlignment = Alignment.Top // Align items to the top
+            verticalAlignment = Alignment.Top
         ) {
             val randomBgColor = randomColor()
             val colorDrawable = ColorDrawable(randomBgColor.toArgb())
@@ -54,27 +51,26 @@ fun BookListItem(
                 model = ImageRequest.Builder(LocalContext.current)
                     .data(book.coverUrl)
                     .crossfade(true)
-                    .placeholder(colorDrawable) // Use the random color as placeholder
-                    .error(colorDrawable) // Same for error
+                    .placeholder(colorDrawable)
+                    .error(colorDrawable)
                     .build(),
                 contentDescription = "${book.title} cover",
-                contentScale = ContentScale.Fit, // Fit might be better here
+                contentScale = ContentScale.Fit,
                 modifier = Modifier
-                    .size(width = 80.dp, height = 120.dp) // Larger cover image
-                    .clip(RoundedCornerShape(corner = CornerSize(16.dp))) // Rounded corners
-                    .background(randomBgColor) // Set the random color as background
+                    .size(width = 80.dp, height = 120.dp)
+                    .clip(RoundedCornerShape(corner = CornerSize(16.dp)))
+                    .background(randomBgColor)
             )
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            // Book Title and Author
             Column(
                 modifier = Modifier
-                    .weight(1f) // Takes remaining horizontal space
-                    .height(120.dp), // Match image height roughly
-                verticalArrangement = Arrangement.SpaceBetween // Pushes content to top and bottom
+                    .weight(1f)
+                    .height(120.dp),
+                verticalArrangement = Arrangement.SpaceBetween
             ) {
-                Column { // Group title and author
+                Column {
                     Text(
                         text = book.title,
                         style = MaterialTheme.typography.titleMedium,
@@ -90,7 +86,6 @@ fun BookListItem(
                         overflow = TextOverflow.Ellipsis
                     )
                 }
-                // Add more info here if needed (e.g., rating, buttons) aligned to bottom
                 // Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) { /* Buttons? */ }
             }
         }

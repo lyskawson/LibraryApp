@@ -3,19 +3,23 @@ package com.example.libraryapp.data.dtos
 import com.squareup.moshi.Json
 
 data class BookDto(
-    @Json(name = "id") val bookId: String, // Use @Json if JSON key differs from property name
-    val title: String,
-    val authors: List<String>?, // Make fields nullable if they might be missing in JSON
-    val description: String?,
-    val cover_url: String?, // Example: snake_case in JSON
-    val published_date: String?,
-    val categories: List<String>?,
-    val average_rating: Float?,
-    val page_count: Int?
-    // Add other fields returned by the API
+    @Json(name = "id") val id: Int,
+    @Json(name = "title") val title: String?,
+    @Json(name = "authors") val authors: List<AuthorInBookDto>?,
+    @Json(name = "description") val description: String?,
+    @Json(name = "cover_url") val coverUrl: String?,
+    @Json(name = "published_year") val publishedYear: Int?,
+    @Json(name = "categories") val categories: List<String>?,
+    @Json(name = "average_rating") val averageRating: Float?,
+    @Json(name = "pages") val pages: Int?
 )
 
-// DTO for a list response if your API wraps lists, e.g., { "books": [...] }
+data class AuthorInBookDto(
+    @Json(name = "id") val id: Int,
+    @Json(name = "first_name") val firstName: String?,
+    @Json(name = "last_name") val lastName: String?
+)
+
 data class BookListResponse(
     val books: List<BookDto>
     // val totalCount: Int? // Maybe pagination info

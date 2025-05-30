@@ -39,18 +39,17 @@ import com.example.libraryapp.data.entities.Book
 import com.example.libraryapp.utils.randomColor
 
 
-// Placeholder data model (ideally use one defined in ui/model or domain/model later)
 data class SimpleBook(val id: String, val title: String, val author: String? = "Some Author", val coverUrl: String? = null)
 
 @Composable
 fun HomeScreen(
     modifier: Modifier = Modifier,
     onBookClick: (bookId: String) -> Unit = {},
-    viewModel: HomeViewModel = hiltViewModel() // Inject HomeViewModel
+    viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    Box(modifier = modifier.fillMaxSize()) { // Use Box for loading/error overlay
+    Box(modifier = modifier.fillMaxSize()) {
         when {
             uiState.isLoadingDiscover -> {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
@@ -61,15 +60,12 @@ fun HomeScreen(
                     color = MaterialTheme.colorScheme.error,
                     modifier = Modifier.align(Alignment.Center).padding(16.dp)
                 )
-                // Optional: Retry button
-                // Button(onClick = { viewModel.refreshHomeData() }, ...) { Text("Retry") }
             }
-            // Only show content when not loading and no error
             else -> {
                 HomeScreenContent(
                     uiState = uiState,
                     onBookClick = onBookClick,
-                    modifier = Modifier.fillMaxSize() // Let content fill the Box
+                    modifier = Modifier.fillMaxSize()
                 )
             }
         }
@@ -83,16 +79,15 @@ private fun HomeScreenContent(
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
-        modifier = modifier, // Modifier passed down
+        modifier = modifier,
         contentPadding = PaddingValues(vertical = 16.dp)
     ) {
-        // --- Featured Books Section ---
-        if (uiState.featuredBooks.isNotEmpty()) { // Only show section if data exists
+        if (uiState.featuredBooks.isNotEmpty()) {
             item {
                 SectionTitle("Featured Books", modifier = Modifier.padding(horizontal = 16.dp))
                 Spacer(modifier = Modifier.height(8.dp))
                 FeaturedBooksRow(
-                    books = uiState.featuredBooks, // Use data from uiState
+                    books = uiState.featuredBooks,
                     onBookClick = onBookClick,
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
@@ -100,8 +95,7 @@ private fun HomeScreenContent(
             }
         }
 
-        // --- Categories Section ---
-        if (uiState.categories.isNotEmpty()) { // Only show section if data exists
+        if (uiState.categories.isNotEmpty()) {
             item {
                 SectionTitle("Categories", modifier = Modifier.padding(start = 16.dp, top = 16.dp))
                 Spacer(modifier = Modifier.height(8.dp))
@@ -110,7 +104,7 @@ private fun HomeScreenContent(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.padding(bottom = 16.dp)
                 ) {
-                    items(uiState.categories) { category -> // Use data from uiState
+                    items(uiState.categories) { category ->
                         SuggestionChip(onClick = { /* TODO: Handle category click -> maybe navigate or filter */ }, label = { Text(category) })
                     }
                 }
@@ -118,20 +112,17 @@ private fun HomeScreenContent(
             }
         }
 
-        // --- Discover Section ---
-        if (uiState.discoverBooks.isNotEmpty()) { // Only show section if data exists
+        if (uiState.discoverBooks.isNotEmpty()) {
             item {
                 SectionTitle("Discover", modifier = Modifier.padding(start = 16.dp, top = 16.dp))
                 Spacer(modifier = Modifier.height(8.dp))
             }
-            items(uiState.discoverBooks, key = { it.id }) { book -> // Use data from uiState
-                // Using the common BookListItem if its structure matches
-                BookListItem( // Assuming BookListItem is in ui.components
+            items(uiState.discoverBooks, key = { it.id }) { book ->
+                BookListItem(
                     book = book,
                     onClick = { onBookClick(book.id) },
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
                 )
-                // Or keep using a specific list item defined within HomeScreen if needed
             }
         }
     }
@@ -141,7 +132,6 @@ private fun HomeScreenContent(
 
 
 
-// Helper for Section Titles
 @Composable
 fun SectionTitle(title: String, modifier: Modifier = Modifier) {
     Text(
@@ -151,7 +141,6 @@ fun SectionTitle(title: String, modifier: Modifier = Modifier) {
     )
 }
 
-// Composable for the horizontal featured books row
 @Composable
 fun FeaturedBooksRow(
     books: List<Book>,
@@ -169,7 +158,6 @@ fun FeaturedBooksRow(
     }
 }
 
-// Composable for a single item in the featured row (e.g., just cover)
 @Composable
 fun FeaturedBookItem(
     book: Book,
@@ -178,33 +166,32 @@ fun FeaturedBookItem(
 ) {
     Card(
         onClick = onClick,
-        modifier = modifier.width(120.dp) // Fixed width for featured items
+        modifier = modifier.width(120.dp)
     ) {
         Column {
             val randomBgColor = randomColor()
             val colorDrawable = ColorDrawable(randomBgColor.toArgb())
-            // Placeholder for Book Cover Image (using AsyncImage later)
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
                     .data(book.coverUrl)
                     .crossfade(true)
-                    .placeholder(colorDrawable) // Use placeholder
-                    .error(colorDrawable)       // Use error drawable
+                    .placeholder(colorDrawable)
+                    .error(colorDrawable)
                     .build(),
                 contentDescription = "${book.title} cover",
-                contentScale = ContentScale.Crop, // Crop fits well for fixed size cards
+                contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .height(160.dp)
                     .fillMaxWidth()
-                    .clip(MaterialTheme.shapes.small) // Clip image itself
-                    .background(MaterialTheme.colorScheme.surfaceVariant) // Background if image fails
+                    .clip(MaterialTheme.shapes.small)
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
             )
             Text(
                 text = book.title,
                 style = MaterialTheme.typography.labelMedium,
                 modifier = Modifier.padding(8.dp),
                 maxLines = 2,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis // Added ellipsis
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
             )
         }
     }

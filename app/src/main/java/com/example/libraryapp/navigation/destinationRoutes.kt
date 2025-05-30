@@ -14,4 +14,4 @@ object MyLibraryRoute : AppScreenRoute
 data class BookDetailRoute(val bookId: String) : AppScreenRoute
 
 @Serializable
-data class SearchResultsRoute(val query: String) : AppScreenRoute // Add this
+data class SearchResultsRoute(val query: String) : AppScreenRoute

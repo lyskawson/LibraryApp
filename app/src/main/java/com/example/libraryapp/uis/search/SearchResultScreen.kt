@@ -32,15 +32,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.libraryapp.customcomposables.BookListItem
 import com.example.libraryapp.uis.home.SimpleBook
 
-// Placeholder data for preview/initial state
 val placeholderSearchResults = List(10) { SimpleBook(id = "s$it", title = "Search Result Book ${it + 1}") }
 
-@OptIn(ExperimentalMaterial3Api::class) // For TopAppBar
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchResultsScreen(
     modifier: Modifier = Modifier,
     navigateUp: () -> Unit,
-    navigateToDetail: (bookId: String) -> Unit,// Navigate to book detail
+    navigateToDetail: (bookId: String) -> Unit,
     viewModel: SearchViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -49,12 +48,12 @@ fun SearchResultsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Results for \"${uiState.query}\"") }, // Show the search query
+                title = { Text("Results for \"${uiState.query}\"") },
                 navigationIcon = {
                     IconButton(onClick = navigateUp) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back" // stringResource(R.string.back)
+                            contentDescription = "Back"
                         )
                     }
                 }
@@ -72,7 +71,7 @@ fun SearchResultsScreen(
                 }
 
                 uiState.error != null -> {
-                    Column( // Column for error message and retry button
+                    Column(
                         modifier = Modifier
                             .align(Alignment.Center)
                             .padding(16.dp),
@@ -89,10 +88,8 @@ fun SearchResultsScreen(
                         }
                     }
                 }
-                // Check results after loading and error checks
                 uiState.results.isEmpty() && !uiState.isLoading -> {
                     Text(
-                        // Use query from uiState for the empty message
                         text = "No results found for \"${uiState.query}\"",
                         modifier = Modifier
                             .align(Alignment.Center)
@@ -103,7 +100,6 @@ fun SearchResultsScreen(
                 }
 
                 else -> {
-                    // Display list if results exist
                     LazyColumn(
                         contentPadding = PaddingValues(vertical = 8.dp, horizontal = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),

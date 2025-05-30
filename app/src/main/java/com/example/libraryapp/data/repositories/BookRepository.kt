@@ -11,24 +11,24 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
-import javax.inject.Inject
 import retrofit2.HttpException
-import retrofit2.Response // Import Response
+import retrofit2.Response
 import java.io.IOException
+import javax.inject.Inject
 
 sealed class Result<out T> {
-    data object Loading : Result<Nothing>() // Add this state
+    data object Loading : Result<Nothing>()
     data class Success<out T>(val data: T) : Result<T>()
     data class Error(val exception: Throwable? = null, val message: String? = null) : Result<Nothing>()
 }
 
 interface BookRepository {
-    fun getFeaturedBooks(): Flow<Result<List<Book>>> // Using Result wrapper
+    fun getFeaturedBooks(): Flow<Result<List<Book>>>
     fun getRentedBooks(): Flow<Result<List<Book>>>
     fun getPurchasedBooks(): Flow<Result<List<Book>>>
-    fun getDiscoverBooks(): Flow<Result<List<Book>>> // Added for HomeScreen
+    fun getDiscoverBooks(): Flow<Result<List<Book>>>
     fun getBookDetails(bookId: String): Flow<Result<Book?>>
-    suspend fun searchBooks(query: String): Result<List<Book>> // Suspend for one-off operation
+    suspend fun searchBooks(query: String): Result<List<Book>>
 
     // suspend fun rentBook(bookId: String, expiryDate: Long?): Result<Unit>
     // suspend fun purchaseBook(bookId: String): Result<Unit>
@@ -40,64 +40,54 @@ interface BookRepository {
 
 class BookRepositoryImpl @Inject constructor(
     private val apiService: LibraryApiService
-    // Inject DAOs here later if adding local caching (Room)
 ) : BookRepository {
 
-    // Helper function to wrap API calls in Flow<Result<T>>
-    // Assumes your Result class has Loading, Success, Error states
     private inline fun <reified T, R> apiFlow(
-        crossinline apiCall: suspend () -> Response<T>, // Retrofit suspend function
-        crossinline mapper: (T?) -> R? // Mapper function (DTO? -> Domain?)
+        crossinline apiCall: suspend () -> Response<T>,
+        crossinline mapper: (T?) -> R?
     ): Flow<Result<R?>> = flow {
-        emit(Result.Loading) // Emit loading state first
+        emit(Result.Loading)
         try {
             val response = apiCall()
             if (response.isSuccessful) {
                 val body = response.body()
-                // Map even if body is null (important for calls returning nullable DTOs like getBookDetails)
                 val mappedData = mapper(body)
                 emit(Result.Success(mappedData))
             } else {
-                // Handle unsuccessful HTTP responses (like 4xx, 5xx)
                 emit(Result.Error(message = "API Error: ${response.code()} ${response.message()}"))
             }
         } catch (e: HttpException) {
-            // Handle exceptions from the HTTP client (e.g., network errors mapped by Retrofit/OkHttp)
             emit(Result.Error(exception = e, message = "Network error: ${e.message()}"))
         } catch (e: IOException) {
-            // Handle general IO exceptions (e.g., no internet connection before request starts)
             emit(Result.Error(exception = e, message = "Network error: Please check connection."))
         } catch (e: Exception) {
-            // Catch any other unexpected exceptions (e.g., during mapping, unforeseen issues)
             emit(Result.Error(exception = e, message = "An unexpected error occurred: ${e.message}"))
         }
-    }.flowOn(Dispatchers.IO) // Ensure network operations run on the IO dispatcher
-        .catch { e -> // Catch exceptions that might occur within the flow's downstream operators (less likely here, but good practice)
+    }.flowOn(Dispatchers.IO)
+        .catch { e ->
             emit(Result.Error(exception = e, message = "Flow error: ${e.message}"))
         }
 
-    // --- Implement Read Operations ---
 
     override fun getFeaturedBooks(): Flow<Result<List<Book>>> =
-        // Explicitly define T=List<BookDto> and R=List<Book> for apiFlow
         apiFlow<List<BookDto>, List<Book>>(
             apiCall = { apiService.getFeaturedBooks() },
-            mapper = { dtoList -> dtoList?.toDomainBookList() ?: emptyList() } // Mapper ensures non-null list
-        ).map { result -> // Map the Flow<Result<List<Book>?>> to Flow<Result<List<Book>>>
+            mapper = { dtoList -> dtoList?.toDomainBookList() ?: emptyList() }
+        ).map { result ->
             when (result) {
-                is Result.Success -> Result.Success(result.data ?: emptyList()) // Ensure non-null list in success
-                is Result.Error -> result // Pass error through
-                is Result.Loading -> result // Pass loading through
+                is Result.Success -> Result.Success(result.data ?: emptyList())
+                is Result.Error -> result
+                is Result.Loading -> result
             }
         }
 
     override fun getRentedBooks(): Flow<Result<List<Book>>> {
         // TODO: Get actual userId from auth manager/prefs
         val userId = "user123"
-        return apiFlow<List<BookDto>, List<Book>>( // Explicit types
+        return apiFlow<List<BookDto>, List<Book>>(
             apiCall = { apiService.getRentedBooks(userId) },
             mapper = { dtoList -> dtoList?.toDomainBookList() ?: emptyList() }
-        ).map { result -> // Map to ensure non-null list type
+        ).map { result ->
             when (result) {
                 is Result.Success -> Result.Success(result.data ?: emptyList())
                 is Result.Error -> result
@@ -109,10 +99,10 @@ class BookRepositoryImpl @Inject constructor(
     override fun getPurchasedBooks(): Flow<Result<List<Book>>> {
         // TODO: Get actual userId
         val userId = "user123"
-        return apiFlow<List<BookDto>, List<Book>>( // Explicit types
+        return apiFlow<List<BookDto>, List<Book>>(
             apiCall = { apiService.getPurchasedBooks(userId) },
             mapper = { dtoList -> dtoList?.toDomainBookList() ?: emptyList() }
-        ).map { result -> // Map to ensure non-null list type
+        ).map { result ->
             when (result) {
                 is Result.Success -> Result.Success(result.data ?: emptyList())
                 is Result.Error -> result
@@ -122,7 +112,7 @@ class BookRepositoryImpl @Inject constructor(
     }
 
     override fun getDiscoverBooks(): Flow<Result<List<Book>>> =
-        apiFlow<List<BookDto>, List<Book>>( // Explicit types
+        apiFlow<List<BookDto>, List<Book>>(
             apiCall = { apiService.getDiscoverBooks() },
             mapper = { dtoList -> dtoList?.toDomainBookList() ?: emptyList() }
         ).map { result -> // Map to ensure non-null list type
@@ -134,21 +124,15 @@ class BookRepositoryImpl @Inject constructor(
         }
 
     override fun getBookDetails(bookId: String): Flow<Result<Book?>> =
-        // Explicitly define T=BookDto (Retrofit response type) and R=Book? (Domain type)
-        apiFlow<BookDto?, Book?>( // Note: T is BookDto? if API might return 200 OK with empty body for not found
-            // Or if API returns 404, T can be BookDto, and error handling catches it
-            // Let's assume API returns 200 OK with nullable body or 404
+        apiFlow<BookDto?, Book?>(
             apiCall = { apiService.getBookDetails(bookId) },
-            mapper = { dto -> dto?.toDomainBook() } // Mapper correctly handles nullable DTO -> nullable Domain Book?
+            mapper = { dto -> dto?.toDomainBook() }
         )
-    // No .map needed here as the interface already expects Flow<Result<Book?>>
 
     override suspend fun searchBooks(query: String): Result<List<Book>> {
-        // Use a direct try-catch for the suspend function as it's not a Flow pipeline
         return try {
             val response = apiService.searchBooks(query)
             if (response.isSuccessful) {
-                // Map the response body, provide empty list if body is null
                 Result.Success(response.body()?.toDomainBookList() ?: emptyList())
             } else {
                 Result.Error(message = "API Error: ${response.code()} ${response.message()}")
@@ -162,8 +146,7 @@ class BookRepositoryImpl @Inject constructor(
         }
     }
 
-    // --- Implement Write/Update Operations Later ---
+    // TODO: Implement Write/Update Operations Later
     // override suspend fun rentBook(...) { ... call apiService.rentBook(...) ... }
     // override suspend fun purchaseBook(...) { ... call apiService.purchaseBook(...) ... }
-    // ... etc
 }

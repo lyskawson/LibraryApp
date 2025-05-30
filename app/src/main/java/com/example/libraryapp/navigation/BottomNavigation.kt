@@ -23,10 +23,9 @@ data class BottomNavItem(
     val label: String,
     val selectedIcon: ImageVector,
     val unselectedIcon: ImageVector,
-    val route: AppScreenRoute // Using the interface
+    val route: AppScreenRoute
 )
 
-// List of items remains the same
 val bottomNavItems = listOf(
     BottomNavItem(
         label = "Home",
@@ -54,13 +53,8 @@ fun AppBottomNavigationBar(
 
     NavigationBar(modifier = modifier) {
         bottomNavItems.forEach { item ->
-            // Determine if the current destination matches the item's route
             val isSelected = currentDestination?.hierarchy?.any { navDest ->
-                // Try to match based on the route object's class directly if possible
-                // This works well with androidx.navigation.toRoute approach
                 navDest.route?.let { routeName ->
-                    // Check if the current destination's route name matches the
-                    // qualified name of the item's route class.
                     routeName == item.route::class.qualifiedName
                 } ?: false
             } == true
@@ -69,7 +63,7 @@ fun AppBottomNavigationBar(
             NavigationBarItem(
                 selected = isSelected,
                 onClick = {
-                    navController.navigate(item.route) { // Type-safe navigation
+                    navController.navigate(item.route) {
                         popUpTo(navController.graph.findStartDestination().id) {
                             saveState = true
                         }
@@ -84,7 +78,7 @@ fun AppBottomNavigationBar(
                     )
                 },
                 label = { Text(item.label) },
-                alwaysShowLabel = true // Or false based on preference
+                alwaysShowLabel = true
             )
         }
     }

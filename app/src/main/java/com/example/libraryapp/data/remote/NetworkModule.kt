@@ -18,13 +18,13 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
 
-    private const val BASE_URL = "http://10.0.2.2:8080/" // Android emulator localhost OR your deployed API URL
+    private const val BASE_URL = "http://127.0.0.1:8000/book/1/" // Android emulator localhost OR your deployed API URL
 
     @Provides
     @Singleton
     fun provideMoshi(): Moshi {
         return Moshi.Builder()
-            .addLast(KotlinJsonAdapterFactory()) // Use reflection-based adapter
+            .addLast(KotlinJsonAdapterFactory())
             .build()
     }
 
@@ -40,8 +40,7 @@ object NetworkModule {
     @Singleton
     fun provideOkHttpClient(loggingInterceptor: HttpLoggingInterceptor): OkHttpClient {
         return OkHttpClient.Builder()
-            .addInterceptor(loggingInterceptor) // Add logging
-            // Add other interceptors if needed (e.g., for adding Auth headers)
+            .addInterceptor(loggingInterceptor)
             .connectTimeout(30, TimeUnit.SECONDS) // Set timeouts
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)

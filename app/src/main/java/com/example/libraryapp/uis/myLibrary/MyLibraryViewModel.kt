@@ -3,6 +3,7 @@ package com.example.libraryapp.uis.myLibrary
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.libraryapp.data.repositories.BookRepository
+import com.example.libraryapp.data.repositories.Result
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -12,21 +13,17 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import com.example.libraryapp.data.repositories.Result
 
-// Enum should already be defined in MyLibraryScreen.kt or moved here/to a common place
-// enum class LibraryFilterType { RENTED, PURCHASED }
 
 @HiltViewModel
 class MyLibraryViewModel @Inject constructor(
-    private val bookRepository: BookRepository // Inject the repository interface
+    private val bookRepository: BookRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MyLibraryUiState())
     val uiState: StateFlow<MyLibraryUiState> = _uiState.asStateFlow()
 
-    // Trigger to load data
-    private val loadTrigger = MutableStateFlow(System.currentTimeMillis()) // Trigger refresh
+    private val loadTrigger = MutableStateFlow(System.currentTimeMillis())
 
     init {
         observeBooks()
@@ -34,8 +31,7 @@ class MyLibraryViewModel @Inject constructor(
 
     private fun observeBooks() {
         viewModelScope.launch {
-            loadTrigger.collect { // Re-collect when trigger changes
-                // Collect rented books flow
+            loadTrigger.collect {
                 bookRepository.getRentedBooks()
                     .onStart { _uiState.update { it.copy(isLoadingRented = true, error = null) } }
                     .catch { e -> _uiState.update { it.copy(isLoadingRented = false, error = "Error loading rented: ${e.message}") } }
@@ -47,7 +43,7 @@ class MyLibraryViewModel @Inject constructor(
                             is Result.Error -> {
                                 _uiState.update { it.copy(isLoadingRented = false, error = result.message ?: "Failed to load rented books") }
                             }
-                            is Result.Loading -> { // Handle optional loading state from repo
+                            is Result.Loading -> {
                                 _uiState.update { it.copy(isLoadingRented = true) }
                             }
                         }
@@ -57,7 +53,6 @@ class MyLibraryViewModel @Inject constructor(
 
         viewModelScope.launch {
             loadTrigger.collect {
-                // Collect purchased books flow
                 bookRepository.getPurchasedBooks()
                     .onStart { _uiState.update { it.copy(isLoadingPurchased = true, error = null) } }
                     .catch { e -> _uiState.update { it.copy(isLoadingPurchased = false, error = "Error loading purchased: ${e.message}") } }
@@ -83,7 +78,6 @@ class MyLibraryViewModel @Inject constructor(
     }
 
     fun refreshData() {
-        // Update trigger to cause flows to re-collect
         loadTrigger.value = System.currentTimeMillis()
     }
 }

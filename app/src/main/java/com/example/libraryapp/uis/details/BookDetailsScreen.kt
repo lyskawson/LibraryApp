@@ -41,30 +41,23 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.libraryapp.data.entities.Book
-import com.example.libraryapp.uis.home.SimpleBook
 import com.example.libraryapp.utils.randomColor
 
-val placeholderBookDetail = SimpleBook(
-    id = "preview1",
-    title = "A Fantastically Interesting Book",
-    author = "Jane Doe",
-    coverUrl = null // Let placeholder show
-)
 
-@OptIn(ExperimentalMaterial3Api::class) // For TopAppBar
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BookDetailScreen(
     modifier: Modifier = Modifier,
     viewModel: BookDetailViewModel = hiltViewModel(),
-    navigateUp: () -> Unit // Callback to go back
-    // Inject ViewModel later: viewModel: BookDetailViewModel = hiltViewModel()
+    navigateUp: () -> Unit
+    // for later to Inject ViewModel: viewModel: BookDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { /* Title can be empty or dynamic */ },
+                title = { /*for now empty */ },
                 navigationIcon = {
                     IconButton(onClick = navigateUp) {
                         Icon(
@@ -73,13 +66,12 @@ fun BookDetailScreen(
                         )
                     }
                 },
-                // Optional: Add actions like share, favorite etc.
                 // actions = { ... }
                 // colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent) // Make transparent if overlapping content
             )
         }
     ) { innerPadding ->
-        Box( // Use Box to handle loading/error/content switching
+        Box(
             modifier = modifier
                 .padding(innerPadding)
                 .fillMaxSize()
@@ -89,7 +81,7 @@ fun BookDetailScreen(
                     CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                 }
                 uiState.error != null -> {
-                    Column( // Use Column for error message and retry button
+                    Column(
                         modifier = Modifier.align(Alignment.Center).padding(16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
@@ -106,16 +98,13 @@ fun BookDetailScreen(
                     }
                 }
                 uiState.book != null -> {
-                    // Pass the loaded book to the content composable
                     BookDetailContent(
-                        book = uiState.book!!, // Safe non-null assertion here
+                        book = uiState.book!!,
                         modifier = Modifier
-                            .fillMaxSize() // Content fills the Box
+                            .fillMaxSize()
                             .verticalScroll(rememberScrollState())
                     )
                 }
-                // Optional: Handle case where book is null but not loading and no error
-                // else -> { Text("Book details not available.", modifier = Modifier.align(Alignment.Center)) }
             }
         }
     }
@@ -136,11 +125,11 @@ fun BookDetailContent(
             model = ImageRequest.Builder(LocalContext.current)
                 .data(book.coverUrl)
                 .crossfade(true)
-                .placeholder(colorDrawable) // Use the random color as placeholder
-                .error(colorDrawable) // Same for error
+                .placeholder(colorDrawable)
+                .error(colorDrawable)
                 .build(),
             contentDescription = "${book.title} cover",
-            contentScale = ContentScale.Fit, // Fit might be better here
+            contentScale = ContentScale.Fit,
             modifier = Modifier
                 .height(300.dp)
                 .fillMaxWidth(0.7f)
@@ -150,7 +139,6 @@ fun BookDetailContent(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Title
         Text(
             text = book.title,
             style = MaterialTheme.typography.headlineSmall,
@@ -159,7 +147,6 @@ fun BookDetailContent(
 
         Spacer(modifier = Modifier.height(4.dp))
 
-        // Author
         Text(
             text = book.authors.joinToString().ifEmpty { "Unknown Author" },
             style = MaterialTheme.typography.titleMedium,
@@ -169,11 +156,10 @@ fun BookDetailContent(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // --- Display More Details ---
         Spacer(modifier = Modifier.height(16.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly, // Space out details
+            horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
             book.averageRating?.let { rating ->
@@ -186,27 +172,23 @@ fun BookDetailContent(
                 DetailItem(label = "Published", value = date)
             }
         }
-        // --- End More Details ---
 
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Description (uses book.description - updated)
         Text(
-            // Use actual description or a placeholder if null/empty
             text = book.description?.takeIf { it.isNotBlank() } ?: "No description available.",
             style = MaterialTheme.typography.bodyMedium
         )
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Categories/Genres (uses book.categories - added)
         book.categories?.takeIf { it.isNotEmpty() }?.let { categories ->
             Row(
                 modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
                 horizontalArrangement = Arrangement.Center
             ) {
-                categories.take(3).forEach { category -> // Show max 3 categories for example
+                categories.take(3).forEach { category ->
                     SuggestionChip(
                         onClick = { /* TODO: Maybe navigate to category search? */ },
                         label = { Text(category) },
@@ -230,11 +212,10 @@ fun BookDetailContent(
             horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally)
         ) {
             Button(onClick = { /* TODO: Handle Read */ }) {
-                Text("Read") // stringResource(R.string.read)
+                Text("Read")
             }
             OutlinedButton(onClick = { /* TODO: Handle Rent/Buy */ }) {
-                // Change text based on rented/purchased status later
-                Text("Rent/Buy") // stringResource(R.string.rent_buy)
+                Text("Rent/Buy")
             }
         }
 

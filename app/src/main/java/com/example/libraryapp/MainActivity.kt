@@ -48,21 +48,17 @@ fun LibraryApp(
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController() // Allow injecting NavController for previews/tests
 ) {
-    // --- State Hoisting for Search ---
     var searchWidgetState by rememberSaveable { mutableStateOf(SearchWidgetState.CLOSED) }
     var searchQuery by rememberSaveable { mutableStateOf("") }
-    // ---------------------------------
 
-    // --- Determine Current Screen Title ---
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentScreenTitle = remember(currentBackStackEntry) { // Recalculate only when backstack changes
+    val currentScreenTitle = remember(currentBackStackEntry) {
         when (currentBackStackEntry?.destination?.route) {
-            HomeRoute::class.qualifiedName -> "Home" // Use qualified name for comparison
+            HomeRoute::class.qualifiedName -> "Home"
             MyLibraryRoute::class.qualifiedName -> "My Library"
             else -> "Library App" // Default title
         }
     }
-    // ------------------------------------
 
     Scaffold(
         modifier = modifier,
@@ -73,26 +69,19 @@ fun LibraryApp(
                 searchWidgetState = searchWidgetState,
                 onSearchQueryChange = { query ->
                     searchQuery = query
-                    // Optional: Trigger search dynamically as user types (debounce recommended)
                 },
                 onSearchWidgetChange = { newState ->
                     searchWidgetState = newState
-                    // If closing search, potentially clear query (handled in component now)
-                    // if(newState == SearchWidgetState.CLOSED) {
-                    //    searchQuery = ""
-                    // }
+
                 },
                 onSearchTriggered = { query ->
-                    if (query.isNotBlank()) { // Only navigate if query is not blank
+                    if (query.isNotBlank()) {
                         navController.navigate(SearchResultsRoute(query = query))
-                        // Optional: Clear search field immediately after navigating
-                        // searchQuery = "" // Or clear it when the SearchResultsScreen appears
-                        // Optional: Close search bar after triggering
                         searchWidgetState = SearchWidgetState.CLOSED
-                    }// Optionally close search bar after triggering
+                    }
                 },
                 onClearSearch = {
-                    searchQuery = "" // Clear the state held here
+                    searchQuery = ""
                 }
             )
         },
@@ -100,15 +89,10 @@ fun LibraryApp(
             AppBottomNavigationBar(navController = navController)
         }
     ) { innerPadding ->
-        // Pass the navController and the padding provided by Scaffold
         AppNavHost(
             navController = navController,
-            // Apply the padding to the NavHost container
-            // This padding now accounts for BOTH top and bottom bars
             modifier = Modifier.padding(innerPadding)
-            // --- TODO: Pass search query/state down if needed ---
-            // Pass searchQuery or search related callbacks down to screens
-            // that need to display search results, e.g.:
+            // TODO: Pass search query/state down if needed
             // searchViewModel = hiltViewModel() (inject later)
             // onSearchQuery = { query -> searchViewModel.search(query) }
         )
@@ -117,16 +101,15 @@ fun LibraryApp(
 @Composable
 fun AppNavHost(
     navController: NavHostController,
-    modifier: Modifier = Modifier // Modifier for padding, etc.
+    modifier: Modifier = Modifier
 ) {
     NavHost(
         navController = navController,
-        startDestination = HomeRoute, // Keep start destination
+        startDestination = HomeRoute,
         modifier = modifier
     ) {
         composable<HomeRoute> {
             HomeScreen(
-                // Pass a lambda that navigates to the detail screen
                 onBookClick = { bookId ->
                     navController.navigate(BookDetailRoute(bookId = bookId))
                 }
@@ -135,26 +118,20 @@ fun AppNavHost(
 
         composable<MyLibraryRoute> {
             MyLibraryScreen(
-                // Pass a lambda that navigates to the detail screen
                 onBookClick = { bookId ->
                     navController.navigate(BookDetailRoute(bookId = bookId))
                 }
             )
         }
 
-        // --- Add Destination for Book Detail ---
         composable<BookDetailRoute> { backStackEntry ->
-            // Automatically extracts arguments using .toRoute()
             val routeArgs: BookDetailRoute = backStackEntry.toRoute()
             BookDetailScreen(
                 navigateUp = { navController.navigateUp() } // Standard back navigation
             )
         }
-        // --- End Book Detail Destination ---
 
-        // --- Add Destination for Search Results ---
         composable<SearchResultsRoute> { backStackEntry ->
-            // Automatically extracts arguments using .toRoute()
             val routeArgs: SearchResultsRoute = backStackEntry.toRoute()
             SearchResultsScreen(
                 navigateUp = { navController.navigateUp() },
@@ -163,7 +140,6 @@ fun AppNavHost(
                 }
             )
         }
-        // --- End Search Results Destination ---
     }
 }
 

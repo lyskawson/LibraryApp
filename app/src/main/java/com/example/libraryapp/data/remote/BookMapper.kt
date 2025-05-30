@@ -5,15 +5,15 @@ import com.example.libraryapp.data.entities.Book
 
 fun BookDto.toDomainBook(): Book {
     return Book(
-        id = this.bookId, // Map appropriate fields
-        title = this.title ?: "No Title", // Provide defaults for non-nullable domain fields
-        authors = this.authors ?: emptyList(),
+        id = this.id.toString(),
+        title = this.title ?: "No Title",
+        authors = this.authors?.map { "${it.firstName ?: ""} ${it.lastName ?: ""}".trim() } ?: emptyList(),
         description = this.description,
-        coverUrl = this.cover_url, // Map correct DTO field name
-        publishedDate = this.published_date,
+        coverUrl = this.coverUrl,
+        publishedDate = this.publishedYear?.toString(), // Convert Int to String or handle as Int in domain
         categories = this.categories,
-        averageRating = this.average_rating,
-        pageCount = this.page_count
+        averageRating = this.averageRating,
+        pageCount = this.pages
     )
 }
 

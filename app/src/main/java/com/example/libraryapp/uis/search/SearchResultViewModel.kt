@@ -26,27 +26,22 @@ class SearchViewModel @Inject constructor(
     private val searchQuery: String = checkNotNull(savedStateHandle[SearchResultsRoute::query.name])
 
     init {
-        // Store query in state immediately
         _uiState.update { it.copy(query = searchQuery) }
-        // Perform the initial search
         performSearch()
     }
 
     fun retrySearch() {
-        performSearch() // Call the search logic again
+        performSearch()
     }
 
     private fun performSearch() {
-        // Don't restart if already loading
         if (_uiState.value.isLoading) return
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) } // Set loading, clear error
 
-            // Call the suspend function from the repository
             val result = bookRepository.searchBooks(searchQuery)
 
-            // Update state based on the Result from the suspend function
             when (result) {
                 is Result.Success -> {
                     _uiState.update {
@@ -64,8 +59,7 @@ class SearchViewModel @Inject constructor(
                         )
                     }
                 }
-                // Loading state is handled manually before/after the call for suspend funs
-                is Result.Loading -> {} // Not applicable here
+                is Result.Loading -> {}
             }
         }
     }

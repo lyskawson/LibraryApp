@@ -37,19 +37,9 @@ fun MyLibraryScreen(
     onBookClick: (bookId: String) -> Unit = {},
     viewModel: MyLibraryViewModel = hiltViewModel()
 ) {
-//    var selectedFilter by rememberSaveable { mutableStateOf(LibraryFilterType.RENTED) }
-//    val rentedBooks = remember {
-//        List(15) { SimpleBook(id = "f$it", title = "Book ${it + 1}") }
-//    }
-//    val purchasedBooks = remember {
-//        List(15) { SimpleBook(id = "f$it", title = "Book ${it + 1}") }
-//    }
 
-
-    // Observe the UI state from the ViewModel
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    // Determine items to show based on the state from the ViewModel
     val itemsToShow = when (uiState.selectedFilter) {
         LibraryFilterType.RENTED -> uiState.rentedBooks
         LibraryFilterType.PURCHASED -> uiState.purchasedBooks
@@ -58,21 +48,18 @@ fun MyLibraryScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp), // Add some horizontal padding to the whole screen
+            .padding(horizontal = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Segmented Button Row
         LibraryFilterSelector(
             selectedType = uiState.selectedFilter,
-            onSelectionChange = { newFilter -> viewModel.selectFilter(newFilter) }, // Call ViewModel func,
-            modifier = Modifier.padding(vertical = 16.dp) // Add padding above/below selector
+            onSelectionChange = { newFilter -> viewModel.selectFilter(newFilter) },
+            modifier = Modifier.padding(vertical = 16.dp)
         )
 
-        // Divider (Optional, for visual separation)
         HorizontalDivider(modifier = Modifier.padding(bottom = 8.dp))
 
-        // List of Books
-        Box(modifier = Modifier.fillMaxSize()) { // Use Box to overlay loading/error/list
+        Box(modifier = Modifier.fillMaxSize()) {
             when {
                 uiState.isLoadingRented -> {
                     CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
@@ -83,8 +70,6 @@ fun MyLibraryScreen(
                         color = MaterialTheme.colorScheme.error,
                         modifier = Modifier.align(Alignment.Center).padding(16.dp)
                     )
-                    // Optional: Add a retry button
-                    // Button(onClick = { viewModel.refreshData() }, modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp)) { Text("Retry") }
                 }
                 itemsToShow.isEmpty() && !uiState.isLoadingRented -> {
                     Text(
@@ -94,9 +79,8 @@ fun MyLibraryScreen(
                     )
                 }
                 else -> {
-                    // Display the list when data is loaded and no error
                     LazyColumn(
-                        modifier = Modifier.fillMaxSize(), // Occupy the Box space
+                        modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(bottom = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
@@ -119,16 +103,15 @@ fun LibraryFilterSelector(
     onSelectionChange: (LibraryFilterType) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val filterOptions = LibraryFilterType.values() // Get all enum values
+    val filterOptions = LibraryFilterType.values()
 
     SingleChoiceSegmentedButtonRow(modifier = modifier.fillMaxWidth()) {
         filterOptions.forEachIndexed { index, filterType ->
             SegmentedButton(
                 shape = SegmentedButtonDefaults.itemShape(index = index, count = filterOptions.size),
                 onClick = { onSelectionChange(filterType) },
-                selected = (filterType == selectedType) // Check if this button's type is selected
+                selected = (filterType == selectedType)
             ) {
-                // Capitalize the enum name for display, or use string resources
                 Text(filterType.name.lowercase().replaceFirstChar { it.titlecase() })
             }
         }
