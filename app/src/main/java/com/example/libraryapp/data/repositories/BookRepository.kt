@@ -1,5 +1,6 @@
 package com.example.libraryapp.data.repositories
 
+import android.util.Log
 import com.example.libraryapp.data.dtos.BookDto
 import com.example.libraryapp.data.entities.Book
 import com.example.libraryapp.data.remote.LibraryApiService
@@ -42,29 +43,43 @@ class BookRepositoryImpl @Inject constructor(
     private val apiService: LibraryApiService
 ) : BookRepository {
 
+    private val TAG = "BookRepositoryImpl"
+
+
     private inline fun <reified T, R> apiFlow(
         crossinline apiCall: suspend () -> Response<T>,
         crossinline mapper: (T?) -> R?
     ): Flow<Result<R?>> = flow {
         emit(Result.Loading)
         try {
+            Log.d(TAG, "apiFlow: Making API call...")
+
             val response = apiCall()
+            Log.d(TAG, "apiFlow: Response received - Code: ${response.code()}, Successful: ${response.isSuccessful}")
             if (response.isSuccessful) {
                 val body = response.body()
+                Log.d(TAG, "apiFlow: Response successful. Body present: ${body != null}")
                 val mappedData = mapper(body)
+                Log.d(TAG, "apiFlow: Mapping successful. Emitting Success.")
                 emit(Result.Success(mappedData))
             } else {
-                emit(Result.Error(message = "API Error: ${response.code()} ${response.message()}"))
+                val errorBody = response.errorBody()?.string() ?: "No error body"
+                Log.e(TAG, "apiFlow: API Error - Code: ${response.code()}, Message: ${response.message()}, ErrorBody: $errorBody")
+                emit(Result.Error(message = "API Error: ${response.code()} ${response.message()} - $errorBody"))
             }
         } catch (e: HttpException) {
-            emit(Result.Error(exception = e, message = "Network error: ${e.message()}"))
+            Log.e(TAG, "apiFlow: HttpException - Code: ${e.code()}, Message: ${e.message()}", e)
+            emit(Result.Error(exception = e, message = "Network error (HTTP ${e.code()}): ${e.message()}"))
         } catch (e: IOException) {
-            emit(Result.Error(exception = e, message = "Network error: Please check connection."))
+            Log.e(TAG, "apiFlow: IOException - Message: ${e.message}", e)
+            emit(Result.Error(exception = e, message = "Network error (IO): Please check connection. Details: ${e.message}"))
         } catch (e: Exception) {
+            Log.e(TAG, "apiFlow: Generic Exception - Message: ${e.message}", e)
             emit(Result.Error(exception = e, message = "An unexpected error occurred: ${e.message}"))
         }
     }.flowOn(Dispatchers.IO)
         .catch { e ->
+            Log.e(TAG, "apiFlow: Exception in flow's catch operator - Message: ${e.message}", e)
             emit(Result.Error(exception = e, message = "Flow error: ${e.message}"))
         }
 
@@ -82,8 +97,8 @@ class BookRepositoryImpl @Inject constructor(
         }
 
     override fun getRentedBooks(): Flow<Result<List<Book>>> {
-        // TODO: Get actual userId from auth manager/prefs
-        val userId = "user123"
+        // TODO: Get actual userId (as Int) from auth manager/prefs
+        val userId = 1 // Placeholder - MUST be an Int now
         return apiFlow<List<BookDto>, List<Book>>(
             apiCall = { apiService.getRentedBooks(userId) },
             mapper = { dtoList -> dtoList?.toDomainBookList() ?: emptyList() }
@@ -92,13 +107,12 @@ class BookRepositoryImpl @Inject constructor(
                 is Result.Success -> Result.Success(result.data ?: emptyList())
                 is Result.Error -> result
                 is Result.Loading -> result
-            }
-        }
+            } }
     }
 
     override fun getPurchasedBooks(): Flow<Result<List<Book>>> {
         // TODO: Get actual userId
-        val userId = "user123"
+        val userId = 1
         return apiFlow<List<BookDto>, List<Book>>(
             apiCall = { apiService.getPurchasedBooks(userId) },
             mapper = { dtoList -> dtoList?.toDomainBookList() ?: emptyList() }
@@ -123,12 +137,16 @@ class BookRepositoryImpl @Inject constructor(
             }
         }
 
-    override fun getBookDetails(bookId: String): Flow<Result<Book?>> =
-        apiFlow<BookDto?, Book?>(
-            apiCall = { apiService.getBookDetails(bookId) },
+    override fun getBookDetails(bookId: String): Flow<Result<Book?>> {
+        val idAsInt = bookId.toIntOrNull()
+        if (idAsInt == null) {
+            return flow { emit(Result.Error(message = "Invalid book ID format for API call: $bookId")) }
+        }
+        return apiFlow<BookDto?, Book?>( // T is BookDto?, R is Book?
+            apiCall = { apiService.getBookById(idAsInt) }, // Use getBookById
             mapper = { dto -> dto?.toDomainBook() }
         )
-
+    }
     override suspend fun searchBooks(query: String): Result<List<Book>> {
         return try {
             val response = apiService.searchBooks(query)

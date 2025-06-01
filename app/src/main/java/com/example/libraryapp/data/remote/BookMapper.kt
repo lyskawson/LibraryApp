@@ -5,15 +5,18 @@ import com.example.libraryapp.data.entities.Book
 
 fun BookDto.toDomainBook(): Book {
     return Book(
-        id = this.id.toString(),
-        title = this.title ?: "No Title",
-        authors = this.authors?.map { "${it.firstName ?: ""} ${it.lastName ?: ""}".trim() } ?: emptyList(),
+        id = this.id.toString(), // Convert Int ID from DTO to String for domain
+        title = this.title,
+        authors = this.author?.let { // If nested author DTO exists
+            listOf("${it.firstName} ${it.lastName}".trim())
+        } ?: listOf("Author ID: ${this.authorId}"), // Fallback using authorId
         description = this.description,
         coverUrl = this.coverUrl,
-        publishedDate = this.publishedYear?.toString(), // Convert Int to String or handle as Int in domain
-        categories = this.categories,
+        publishedDate = this.publishedYear?.toString(), // Or handle as Int in domain model
+        categories = this.categories ?: emptyList(),
         averageRating = this.averageRating,
         pageCount = this.pages
+        // isbn = this.isbn // Add if your domain.model.Book has isbn
     )
 }
 
