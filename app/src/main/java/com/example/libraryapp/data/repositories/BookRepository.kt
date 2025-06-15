@@ -30,13 +30,6 @@ interface BookRepository {
     fun getDiscoverBooks(): Flow<Result<List<Book>>>
     fun getBookDetails(bookId: String): Flow<Result<Book?>>
     suspend fun searchBooks(query: String): Result<List<Book>>
-
-    // suspend fun rentBook(bookId: String, expiryDate: Long?): Result<Unit>
-    // suspend fun purchaseBook(bookId: String): Result<Unit>
-    // suspend fun addBookToLibrary(book: Book): Result<Unit>
-    // suspend fun removeBookFromLibrary(bookId: String): Result<Unit>
-    // suspend fun updateUserBookData(bookId: String, /* ... updated fields ... */): Result<Unit>
-
 }
 
 class BookRepositoryImpl @Inject constructor(
@@ -45,7 +38,6 @@ class BookRepositoryImpl @Inject constructor(
 
     private val TAG = "BookRepositoryImpl"
 
-
     private inline fun <reified T, R> apiFlow(
         crossinline apiCall: suspend () -> Response<T>,
         crossinline mapper: (T?) -> R?
@@ -53,7 +45,6 @@ class BookRepositoryImpl @Inject constructor(
         emit(Result.Loading)
         try {
             Log.d(TAG, "apiFlow: Making API call...")
-
             val response = apiCall()
             Log.d(TAG, "apiFlow: Response received - Code: ${response.code()}, Successful: ${response.isSuccessful}")
             if (response.isSuccessful) {
@@ -83,11 +74,14 @@ class BookRepositoryImpl @Inject constructor(
             emit(Result.Error(exception = e, message = "Flow error: ${e.message}"))
         }
 
-
     override fun getFeaturedBooks(): Flow<Result<List<Book>>> =
         apiFlow<List<BookDto>, List<Book>>(
             apiCall = { apiService.getFeaturedBooks() },
-            mapper = { dtoList -> dtoList?.toDomainBookList() ?: emptyList() }
+            mapper = { dtoList ->
+                // Since we're using the same endpoint, we can filter or take first N books
+                val featured = dtoList?.take(10) ?: emptyList()
+                featured.toDomainBookList()
+            }
         ).map { result ->
             when (result) {
                 is Result.Success -> Result.Success(result.data ?: emptyList())
@@ -96,40 +90,45 @@ class BookRepositoryImpl @Inject constructor(
             }
         }
 
-    override fun getRentedBooks(): Flow<Result<List<Book>>> {
-        // TODO: Get actual userId (as Int) from auth manager/prefs
-        val userId = 1 // Placeholder - MUST be an Int now
-        return apiFlow<List<BookDto>, List<Book>>(
-            apiCall = { apiService.getRentedBooks(userId) },
-            mapper = { dtoList -> dtoList?.toDomainBookList() ?: emptyList() }
+    override fun getRentedBooks(): Flow<Result<List<Book>>> =
+        apiFlow<List<BookDto>, List<Book>>(
+            apiCall = { apiService.getRentedBooks(1) }, // userId parameter ignored by API
+            mapper = { dtoList ->
+                // For now, return empty list since we don't have rental data
+                emptyList<BookDto>().toDomainBookList()
+            }
         ).map { result ->
             when (result) {
-                is Result.Success -> Result.Success(result.data ?: emptyList())
-                is Result.Error -> result
-                is Result.Loading -> result
-            } }
-    }
-
-    override fun getPurchasedBooks(): Flow<Result<List<Book>>> {
-        // TODO: Get actual userId
-        val userId = 1
-        return apiFlow<List<BookDto>, List<Book>>(
-            apiCall = { apiService.getPurchasedBooks(userId) },
-            mapper = { dtoList -> dtoList?.toDomainBookList() ?: emptyList() }
-        ).map { result ->
-            when (result) {
-                is Result.Success -> Result.Success(result.data ?: emptyList())
+                is Result.Success -> Result.Success(emptyList<Book>()) // Return empty for now
                 is Result.Error -> result
                 is Result.Loading -> result
             }
         }
-    }
+
+    override fun getPurchasedBooks(): Flow<Result<List<Book>>> =
+        apiFlow<List<BookDto>, List<Book>>(
+            apiCall = { apiService.getPurchasedBooks(1) }, // userId parameter ignored by API
+            mapper = { dtoList ->
+                // For now, return empty list since we don't have purchase data
+                emptyList<BookDto>().toDomainBookList()
+            }
+        ).map { result ->
+            when (result) {
+                is Result.Success -> Result.Success(emptyList<Book>()) // Return empty for now
+                is Result.Error -> result
+                is Result.Loading -> result
+            }
+        }
 
     override fun getDiscoverBooks(): Flow<Result<List<Book>>> =
         apiFlow<List<BookDto>, List<Book>>(
             apiCall = { apiService.getDiscoverBooks() },
-            mapper = { dtoList -> dtoList?.toDomainBookList() ?: emptyList() }
-        ).map { result -> // Map to ensure non-null list type
+            mapper = { dtoList ->
+                // Since we're using the same endpoint, we can shuffle or take different subset
+                val discover = dtoList?.shuffled()?.take(15) ?: emptyList()
+                discover.toDomainBookList()
+            }
+        ).map { result ->
             when (result) {
                 is Result.Success -> Result.Success(result.data ?: emptyList())
                 is Result.Error -> result
@@ -142,16 +141,24 @@ class BookRepositoryImpl @Inject constructor(
         if (idAsInt == null) {
             return flow { emit(Result.Error(message = "Invalid book ID format for API call: $bookId")) }
         }
-        return apiFlow<BookDto?, Book?>( // T is BookDto?, R is Book?
-            apiCall = { apiService.getBookById(idAsInt) }, // Use getBookById
+        return apiFlow<BookDto?, Book?>(
+            apiCall = { apiService.getBookById(idAsInt) },
             mapper = { dto -> dto?.toDomainBook() }
         )
     }
+
     override suspend fun searchBooks(query: String): Result<List<Book>> {
+        // Since search endpoint doesn't exist, get all books and filter locally
         return try {
-            val response = apiService.searchBooks(query)
+            val response = apiService.getAllBooks()
             if (response.isSuccessful) {
-                Result.Success(response.body()?.toDomainBookList() ?: emptyList())
+                val allBooks = response.body()?.toDomainBookList() ?: emptyList()
+                // Filter books that match the query
+                val filteredBooks = allBooks.filter { book ->
+                    book.title.contains(query, ignoreCase = true) ||
+                            book.description?.contains(query, ignoreCase = true) == true
+                }
+                Result.Success(filteredBooks)
             } else {
                 Result.Error(message = "API Error: ${response.code()} ${response.message()}")
             }
@@ -163,8 +170,4 @@ class BookRepositoryImpl @Inject constructor(
             Result.Error(exception = e, message = "An unexpected error occurred: ${e.message}")
         }
     }
-
-    // TODO: Implement Write/Update Operations Later
-    // override suspend fun rentBook(...) { ... call apiService.rentBook(...) ... }
-    // override suspend fun purchaseBook(...) { ... call apiService.purchaseBook(...) ... }
 }
