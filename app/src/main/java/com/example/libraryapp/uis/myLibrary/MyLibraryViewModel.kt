@@ -32,7 +32,7 @@ class MyLibraryViewModel @Inject constructor(
     private fun observeBooks() {
         viewModelScope.launch {
             loadTrigger.collect {
-                bookRepository.getRentedBooks()
+                bookRepository.getRentedBooks(1)
                     .onStart { _uiState.update { it.copy(isLoadingRented = true, error = null) } }
                     .catch { e -> _uiState.update { it.copy(isLoadingRented = false, error = "Error loading rented: ${e.message}") } }
                     .collect { result ->
@@ -53,7 +53,7 @@ class MyLibraryViewModel @Inject constructor(
 
         viewModelScope.launch {
             loadTrigger.collect {
-                bookRepository.getPurchasedBooks()
+                bookRepository.getPurchasedBooks(1)
                     .onStart { _uiState.update { it.copy(isLoadingPurchased = true, error = null) } }
                     .catch { e -> _uiState.update { it.copy(isLoadingPurchased = false, error = "Error loading purchased: ${e.message}") } }
                     .collect { result ->

@@ -46,7 +46,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun LibraryApp(
     modifier: Modifier = Modifier,
-    navController: NavHostController = rememberNavController() // Allow injecting NavController for previews/tests
+    navController: NavHostController = rememberNavController()
 ) {
     var searchWidgetState by rememberSaveable { mutableStateOf(SearchWidgetState.CLOSED) }
     var searchQuery by rememberSaveable { mutableStateOf("") }
@@ -92,9 +92,7 @@ fun LibraryApp(
         AppNavHost(
             navController = navController,
             modifier = Modifier.padding(innerPadding)
-            // TODO: Pass search query/state down if needed
-            // searchViewModel = hiltViewModel() (inject later)
-            // onSearchQuery = { query -> searchViewModel.search(query) }
+
         )
     }
 }

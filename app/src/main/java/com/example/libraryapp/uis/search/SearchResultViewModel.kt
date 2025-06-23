@@ -17,7 +17,7 @@ import javax.inject.Inject
 @HiltViewModel
 class SearchViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
-    private val bookRepository: BookRepository // Inject repository
+    private val bookRepository: BookRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SearchResultsUiState())
@@ -38,7 +38,7 @@ class SearchViewModel @Inject constructor(
         if (_uiState.value.isLoading) return
 
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) } // Set loading, clear error
+            _uiState.update { it.copy(isLoading = true, error = null) }
 
             val result = bookRepository.searchBooks(searchQuery)
 

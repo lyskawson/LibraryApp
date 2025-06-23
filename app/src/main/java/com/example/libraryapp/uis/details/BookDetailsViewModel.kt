@@ -3,6 +3,7 @@ package com.example.libraryapp.uis.details
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.libraryapp.data.dtos.PurchaseCreateDto
 import com.example.libraryapp.data.repositories.BookRepository
 import com.example.libraryapp.data.repositories.Result
 import com.example.libraryapp.navigation.BookDetailRoute
@@ -47,7 +48,7 @@ class BookDetailViewModel @Inject constructor(
                             it.copy(
                                 isLoading = false,
                                 book = result.data,
-                                error = if (result.data != null) null else it.error
+                                error = if (result.data != null) null else "Book not found"
                             )
                         }
                     }
@@ -67,6 +68,59 @@ class BookDetailViewModel @Inject constructor(
         }
     }
 
+    fun purchaseBook() {
+        if (_uiState.value.isPurchasing) return
+
+        val bookIdInt = bookId.toIntOrNull()
+        if (bookIdInt == null) {
+            _uiState.update { it.copy(purchaseMessage = "Błąd: nieprawidłowe ID książki.") }
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isPurchasing = true, purchaseMessage = null) }
+
+            val userId = 1
+
+
+            val price = 9.99
+
+            val purchaseDto = PurchaseCreateDto(user_id = userId, book_id = bookIdInt, price = price)
+
+            val result = bookRepository.purchaseBook(purchaseDto)
+
+            when(result) {
+                is Result.Success -> {
+
+                    _uiState.update {
+                        it.copy(
+                            isPurchasing = false,
+
+                            purchaseMessage = "Zakup zakończony pomyślnie!"
+                        )
+                    }
+                }
+                is Result.Error -> {
+                    _uiState.update {
+                        it.copy(
+                            isPurchasing = false,
+                            purchaseMessage = result.message ?: "Wystąpił błąd podczas zakupu."
+                        )
+                    }
+                }
+
+
+                is Result.Loading -> { /* Nie dotyczy */ }
+            }
+        }
+    }
+
+    /**
+     * Czyści komunikat o zakupie po jego wyświetleniu.
+     */
+    fun clearPurchaseMessage() {
+        _uiState.update { it.copy(purchaseMessage = null) }
+    }
 
     fun retryLoad() {
         loadTrigger.value = Unit
